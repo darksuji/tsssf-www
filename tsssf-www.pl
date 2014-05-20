@@ -9,6 +9,12 @@ get '/' => sub {
   $self->render('index');
 };
 
+get '/api/player/:id' => sub {
+};
+
+get '/api/game/:id' => sub {
+};
+
 app->start;
 __DATA__
 
