@@ -5,8 +5,9 @@ use Mojolicious::Lite;
 plugin 'PODRenderer';
 
 get '/' => sub {
-  my $self = shift;
-  $self->render('index');
+    my ($self) = @_;
+
+    $self->render('board');
 };
 
 get '/api/player/:id' => sub {
@@ -15,17 +16,43 @@ get '/api/player/:id' => sub {
 get '/api/game/:id' => sub {
 };
 
-app->start;
+app->start();
 __DATA__
 
-@@ index.html.ep
+@@ board.html.ep
 % layout 'default';
-% title 'Welcome';
-Welcome to the Mojolicious real-time web framework!
+% title 'TSSSF';
+TSSSF crude-as-balls gameboard
+<table id="gameboard">
+% for my $row_index (1 .. 7) {
+    <tr>
+%   for my $col_index (1 .. 7) {
+%       my $type;
+%       if ($row_index % 2) {
+%           if ($col_index % 2) {
+%               $type = 'pony card';
+%           } else {
+%               $type = 'ship card';
+%           }
+%       } else {
+%           if ($col_index % 2) {
+%               $type = 'ship card';
+%           } else {
+%               $type = 'no card';
+%           }
+%       }
+        <td class="<%= $type %>"><%= $row_index %> - <%= $col_index %></td>
+%   }
+    </tr>
+% }
 
 @@ layouts/default.html.ep
 <!DOCTYPE html>
 <html>
-  <head><title><%= title %></title></head>
-  <body><%= content %></body>
+    <head>
+        <title><%= title %></title>
+        <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+        <script src="http://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+    </head>
+    <body><%= content %></body>
 </html>
