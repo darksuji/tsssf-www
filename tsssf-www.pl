@@ -23,6 +23,21 @@ __DATA__
 % layout 'default';
 % title 'TSSSF';
 TSSSF crude-as-balls gameboard
+<div id="hand">
+    <img class="pony card"
+        src="https://dl.dropboxusercontent.com/u/68743442/freedom-fighter-pinkie-pie.png">
+    <img class="pony card"
+        src="https://dl.dropboxusercontent.com/u/68743442/freedom-fighter-pinkie-pie.png">
+    <img class="pony card"
+        src="https://dl.dropboxusercontent.com/u/68743442/freedom-fighter-pinkie-pie.png">
+    <img class="pony card"
+        src="https://dl.dropboxusercontent.com/u/68743442/freedom-fighter-pinkie-pie.png">
+    <img class="pony card"
+        src="https://dl.dropboxusercontent.com/u/68743442/freedom-fighter-pinkie-pie.png">
+    <img class="goal card"
+        src="https://dl.dropboxusercontent.com/u/68743442/multiply.png">
+</div>
+
 <table id="gameboard">
 % for my $row_index (1 .. 7) {
     <tr>
@@ -30,21 +45,31 @@ TSSSF crude-as-balls gameboard
 %       my $type;
 %       if ($row_index % 2) {
 %           if ($col_index % 2) {
-%               $type = 'pony card';
+%               $type = 'pony space';
 %           } else {
-%               $type = 'ship card';
+%               $type = 'ship space';
 %           }
 %       } else {
 %           if ($col_index % 2) {
-%               $type = 'ship card';
+%               $type = 'ship space';
 %           } else {
-%               $type = 'no card';
+%               $type = 'no space';
 %           }
 %       }
         <td class="<%= $type %>"><%= $row_index %> - <%= $col_index %></td>
 %   }
     </tr>
 % }
+<script>
+$( ".card" ).draggable();
+$( ".space" ).filter(" .pony" ).droppable(
+    {
+        accept: "[class~='card'][class~='pony']"
+    }
+);
+//$( ".space" ).filter(" .ship" ).html('SHIP SPACE');
+$( "td[class~='space'][class~='ship']" ).html('SHIP SPACE');
+</script>
 
 @@ layouts/default.html.ep
 <!DOCTYPE html>
