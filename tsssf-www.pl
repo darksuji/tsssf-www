@@ -16,6 +16,18 @@ get '/api/player/:id' => sub {
 get '/api/game/:id' => sub {
 };
 
+post '/api/board' => sub {
+    my ($self) = @_;
+    my $card = uri_unescape($self->param('card'));
+
+    my ($cardname) = ($card =~ m!/Pony - (.*)\.png!);
+    warn $cardname;
+
+    use URI::Escape qw/uri_unescape/;
+    use HTML::Entities qw/encode_entities/;
+    $self->render(text => encode_entities($cardname));
+};
+
 app->start();
 __DATA__
 
@@ -77,8 +89,14 @@ $( ".space" ).filter(" .pony" ).droppable(
         accept:     "[class~='card'][class~='pony']",
         tolerance:  "pointer",
         hoverClass: "hovering",
-        drop:       function (event, ui) {
-            alert("Gooooooooal!");
+        drop:       function(event, ui) {
+            var uri = ui.draggable.attr("src");
+
+            jQuery.post("/api/board", {card: uri},
+                function(data, textStatus, jqXHR) {
+                    alert("Pony dropped:  " + data);
+                }
+            );
         }
     }
 );
