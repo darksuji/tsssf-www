@@ -108,7 +108,10 @@ var pony_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20
 var ship_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Back%20-%20Ship.png";
 
 $( document ).ready(function() {
-    var grid = [["P","S","P","S","P","S","P"],["S"," ","S"," ","S"," ","S"],["P","S","P","S","P","S","P"],["S"," ","S"," ","S"," ","S"],["P","S","P","S","P","S","P"],["S"," ","S"," ","S"," ","S"],["P","S","P","S","P","S","P"]];
+    jQuery.get("/api/board", undefined,
+        function(data, textStatus, jqXHR) {
+
+    var grid = data.grid;
 
     var table = $( "#gameboard" );
     for (var row_i = 0; row_i < grid.length; ++row_i) {
@@ -169,7 +172,7 @@ $( document ).ready(function() {
             }
         }
     );
-});
+}) });
 
 </script>
 
