@@ -31,7 +31,7 @@ post '/api/card-placement' => sub {
 get '/api/board' => sub {
     my ($self) = @_;
 
-    my $size = 7;
+    my $size = 9;
     my @grid = map {
         my $row_i = $_;
         [
@@ -86,8 +86,7 @@ TSSSF crude-as-balls gameboard
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Ship%20-%20There%20Are%20No%20Breaks%20On%20The%20Love%20Train.png">
 </div>
 
-<table id="gameboard" width="100%">
-</table>
+<table id="gameboard"></table>
 
 <script>
 
@@ -101,19 +100,17 @@ var my_template_format = function() {
   return s;
 };
 
-var empty_grid_cell_template = '<td class="{0}"></td>';
-var grid_cell_template = '<td class="{0}"><img src="{1}"></td>';
-
-var pony_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Back%20-%20Pony.png";
-var ship_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Back%20-%20Ship.png";
-
-$( document ).ready(function() {
+function fetch_and_display_board() {
     jQuery.get("/api/board", undefined,
         function(data, textStatus, jqXHR) {
+            display_board(data.grid);
+        }
+    );
+}
 
-    var grid = data.grid;
+function display_board(grid) {
+    var table = $( '<table width="100%"></table>');
 
-    var table = $( "#gameboard" );
     for (var row_i = 0; row_i < grid.length; ++row_i) {
         var row = $('<tr></tr>');
         var grid_row = grid[row_i];
@@ -143,7 +140,13 @@ $( document ).ready(function() {
 
         table.append(row);
     }
+    $( "#gameboard" ).replaceWith(table);
+    table.attr('id', 'gameboard');
+    activate_board();
+}
 
+/* Turn on all the draggability and callback that make the board actually /do/ stuff. */
+function activate_board() {
     $( ".card" ).draggable();
 
     $( ".space" ).filter(" .pony" ).droppable(
@@ -172,7 +175,17 @@ $( document ).ready(function() {
             }
         }
     );
-}) });
+}
+
+var empty_grid_cell_template = '<td class="{0}"></td>';
+var grid_cell_template = '<td class="{0}"><img src="{1}"></td>';
+
+var pony_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Back%20-%20Pony.png";
+var ship_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Back%20-%20Ship.png";
+
+$( document ).ready(function() {
+    fetch_and_display_board();
+});
 
 </script>
 
