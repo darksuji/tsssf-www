@@ -1,5 +1,11 @@
 #!/usr/bin/env perl
+package main;
 use Mojolicious::Lite;
+
+use lib 'lib';
+
+use TSSSF::Schema;
+use JSON qw/from_json/;
 
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
@@ -31,6 +37,8 @@ post '/api/card-placement' => sub {
 get '/api/board' => sub {
     my ($self) = @_;
 
+=pod
+
     my $size = 9;
     my @grid = map {
         my $row_i = $_;
@@ -43,9 +51,22 @@ get '/api/board' => sub {
         ]
     } (1 .. $size);
 
+=cut
+
+    my $schema = TSSSF::Schema->connect(
+        'dbi:SQLite:dbname=tsssf-main.db', '', ''
+    );
+
+    my $rs = $schema->resultset('BoardState')->search(
+        id => 1,
+    );
+
+    my ($state) = $rs->all;
+    my $grid = from_json($state->contents);
+
     $self->render(
         json => {
-            grid => \@grid,
+            grid => $grid,
         },
     );
 };
