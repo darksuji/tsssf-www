@@ -51,7 +51,7 @@ post '/api/board-reset' => sub {
     $board->contents( to_json($grid) );
     $board->update();
 
-    $self->render(test => 'Okay!');
+    $self->render(text => 'Okay!');
 };
 
 post '/api/card-placement' => sub {
@@ -64,7 +64,7 @@ post '/api/card-placement' => sub {
     my $board = get_board();
     $board->put_card($card_ID, $position);
 
-    $self->redirect_to('/api/board');
+    $self->render(text => 'Okay!');
 };
 
 sub get_board {
@@ -203,7 +203,7 @@ function display_board(grid) {
             row.append(cell);
 
             if (grid_cell.card) {
-                $( "#" + grid_call.card ).position({
+                $( "#" + grid_cell.card ).position({
                     my: "center center",
                     at: "center center",
                     of: cell
@@ -215,6 +215,25 @@ function display_board(grid) {
     }
     $( "#gameboard" ).replaceWith(table);
     table.attr('id', 'gameboard');
+
+    for (var row_i = 0; row_i < grid.length; ++row_i) {
+        var grid_row = grid[row_i];
+
+        for (var col_i = 0; col_i < grid_row.length; ++col_i) {
+            var grid_cell = grid_row[col_i];
+
+            if (grid_cell.card) {
+                var cell = $( ".space" ).filter( "[name='" + row_i + "-" + col_i + "']" );
+
+                $( "#" + grid_cell.card ).position({
+                    my: "center center",
+                    at: "center center",
+                    of: cell
+                });
+            }
+        }
+    }
+
     activate_board();
 }
 
@@ -222,13 +241,13 @@ function display_board(grid) {
 function activate_board() {
     $( ".card" ).draggable();
 
-    $( ".space" ).filter(" .pony" ).droppable(
+    $( ".space" ).filter( ".pony" ).droppable(
         {
             accept:     "[class~='card'][class~='pony']",
             tolerance:  "pointer",
             hoverClass: "hovering",
             drop:       function(event, ui) {
-                var card_ID  = ui.draggable.attr("name");
+                var card_ID  = ui.draggable.attr("id");
                 var position = this.getAttribute("name");
 
                 jQuery.post("/api/card-placement",
