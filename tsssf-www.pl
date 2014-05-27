@@ -5,7 +5,10 @@ use Mojolicious::Lite;
 use lib 'lib';
 
 use TSSSF::Schema;
-use JSON qw/from_json/;
+use DBIx::Class::Objects;
+
+use JSON qw/to_json from_json/;
+use Data::Dumper;
 
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
@@ -22,47 +25,87 @@ get '/api/player/:id' => sub {
 get '/api/game/:id' => sub {
 };
 
-=pod
+post '/api/board-reset' => sub {
+    my ($self) = @_;
+
+    my $size = 9;
+    my $grid = [
+        map {
+            my $row_i = $_;
+            [
+                map {
+                    {
+                        type => (
+                            $row_i % 2
+                                ? $_ % 2 ? 'P' : 'S' # pony row
+                                : $_ % 2 ? 'S' : ' ' # ship row
+                        ),
+                        card => undef,
+                    }
+                } (1 .. $size) 
+            ]
+        } (1 .. $size)
+    ];
+
+    my $board = get_board();
+    $board->contents( to_json($grid) );
+    $board->update();
+
+    $self->render(test => 'Okay!');
+};
 
 post '/api/card-placement' => sub {
     my ($self) = @_;
     my $card_ID = $self->param('card_ID');
     my $position = $self->param('position');
+    die "Need card ID!" unless defined $card_ID;
+    die "Need position!" unless defined $position;
 
+    my $board = get_board();
+    $board->put_card($card_ID, $position);
 
+    $self->redirect_to('/api/board');
 };
 
-=cut
+sub get_board {
+    my $objects = get_objects();
+    my $board = $objects->objectset('BoardState')
+        ->find( { id => 1 } );
+
+    return $board;
+}
+
+sub get_objects {
+    state $objects;
+
+    unless (defined $objects) {
+        $objects = DBIx::Class::Objects->new({
+            schema      => get_schema(),
+            object_base => 'TSSSF',
+        });
+        $objects->load_objects();
+    }
+
+    return $objects;
+}
+
+sub get_schema {
+    state $schema;
+
+    unless (defined $schema) {
+        $schema = TSSSF::Schema->connect(
+            'dbi:SQLite:dbname=tsssf-main.db', '', ''
+        );
+    }
+
+    return $schema;
+}
 
 get '/api/board' => sub {
     my ($self) = @_;
 
-=pod
-
-    my $size = 9;
-    my @grid = map {
-        my $row_i = $_;
-        [
-            map {
-                $row_i % 2
-                    ? $_ % 2 ? 'P' : 'S' # pony row
-                    : $_ % 2 ? 'S' : ' ' # ship row
-            } (1 .. $size) 
-        ]
-    } (1 .. $size);
-
-=cut
-
-    my $schema = TSSSF::Schema->connect(
-        'dbi:SQLite:dbname=tsssf-main.db', '', ''
-    );
-
-    my $rs = $schema->resultset('BoardState')->search(
-        id => 1,
-    );
-
-    my ($state) = $rs->all;
-    my $grid = from_json($state->contents);
+    my $board = get_board();
+    my $grid = from_json($board->contents);
 
     $self->render(
         json => {
@@ -90,20 +133,21 @@ __DATA__
 % layout 'default';
 % title 'TSSSF';
 TSSSF crude-as-balls gameboard
+<form method='POST' action="/api/board-reset"><input type="submit" value="Reset board"></form>
 <div id="hand">
-    <img class="pony card"
+    <img class="pony card" id="pony-1"
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Pony%20-%20Smarty%20Pants.png">
-    <img class="pony card"
+    <img class="pony card" id="pony-2"
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Pony%20-%20Queen%20Chrysalis.png">
-    <img class="pony card"
+    <img class="pony card" id="pony-3"
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Pony%20-%20Princess%20Cadence.png">
-    <img class="pony card"
+    <img class="pony card" id="pony-4"
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Pony%20-%20Cheerilee.png">
-    <img class="ship card"
+    <img class="ship card" id="ship-1"
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Ship%20-%20Cult%20Meeting.png">
-    <img class="ship card"
+    <img class="ship card" id="ship-2"
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Ship%20-%20I%20Read%20That%20In%20A%20Book%20Once.png">
-    <img class="ship card"
+    <img class="ship card" id="ship-3"
         src="https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Ship%20-%20There%20Are%20No%20Breaks%20On%20The%20Love%20Train.png">
 </div>
 
@@ -136,26 +180,34 @@ function display_board(grid) {
         var row = $('<tr></tr>');
         var grid_row = grid[row_i];
         for (var col_i = 0; col_i < grid_row.length; ++col_i) {
+            var grid_cell = grid_row[col_i];
             var cell_type = (
-                  grid_row[col_i] == "P" ? "pony space"
-                : grid_row[col_i] == "S" ? "ship space"
+                  grid_cell.type == "P" ? "pony space"
+                : grid_cell.type == "S" ? "ship space"
                                          : "no space"
             );
 
+            var cell;
             if (cell_type == "no space") {
-                row.append(
-                    my_template_format(
-                        empty_grid_cell_template, cell_type
-                    )
-                );
+                cell = $( my_template_format(
+                    empty_grid_cell_template, cell_type
+                ) );
             } else {
-                row.append(
-                    my_template_format(
-                        grid_cell_template,
-                        cell_type,
-                        cell_type == "pony space" ? pony_card_URI : ship_card_URI
-                    )
-                );
+                cell = $( my_template_format(
+                    grid_cell_template,
+                    cell_type,
+                    row_i + '-' + col_i,
+                    cell_type == "pony space" ? pony_card_URI : ship_card_URI
+                ) );
+            }
+            row.append(cell);
+
+            if (grid_cell.card) {
+                $( "#" + grid_call.card ).position({
+                    my: "center center",
+                    at: "center center",
+                    of: cell
+                });
             }
         }
 
@@ -176,9 +228,14 @@ function activate_board() {
             tolerance:  "pointer",
             hoverClass: "hovering",
             drop:       function(event, ui) {
-                var uri = ui.draggable.attr("src");
+                var card_ID  = ui.draggable.attr("name");
+                var position = this.getAttribute("name");
 
-                jQuery.post("/api/board", {card: uri},
+                jQuery.post("/api/card-placement",
+                    {
+                        card_ID:    card_ID,
+                        position:   position
+                    },
                     function(data, textStatus, jqXHR) {
                         alert("Pony dropped:  " + data);
                     }
@@ -199,7 +256,7 @@ function activate_board() {
 }
 
 var empty_grid_cell_template = '<td class="{0}"></td>';
-var grid_cell_template = '<td class="{0}"><img src="{1}"></td>';
+var grid_cell_template = '<td class="{0}" name="{1}"><img src="{2}"></td>';
 
 var pony_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Back%20-%20Pony.png";
 var ship_card_URI = "https://dl.dropboxusercontent.com/u/68743442/TSSSF%20Low%20Rez/Back%20-%20Ship.png";
